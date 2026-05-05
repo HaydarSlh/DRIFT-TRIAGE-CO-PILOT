@@ -1,0 +1,8 @@
+Model {model_id} has been triaged as: {triage_decision}.
+
+Recommend the remediation action:
+- stable  → no action required
+- warning → schedule shadow retraining
+- critical → trigger immediate rollback and retrain
+
+Respond with only the action label.
