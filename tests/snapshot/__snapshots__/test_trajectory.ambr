@@ -1,0 +1,117 @@
+# serializer version: 1
+# name: test_complex_topic_trajectory
+  list([
+    dict({
+      'agent': 'supervisor',
+      'output_summary': dict({
+        'next_agent': 'researcher',
+        'step_count': 1,
+      }),
+      'step_number': 1,
+    }),
+    dict({
+      'agent': 'researcher',
+      'output_summary': dict({
+        'findings_count': 3,
+      }),
+      'step_number': 2,
+    }),
+    dict({
+      'agent': 'supervisor',
+      'output_summary': dict({
+        'next_agent': 'critic',
+        'step_count': 2,
+      }),
+      'step_number': 3,
+    }),
+    dict({
+      'agent': 'critic',
+      'output_summary': dict({
+        'critique_chars': 40,
+      }),
+      'step_number': 4,
+    }),
+    dict({
+      'agent': 'supervisor',
+      'output_summary': dict({
+        'next_agent': 'writer',
+        'step_count': 3,
+      }),
+      'step_number': 5,
+    }),
+    dict({
+      'agent': 'writer',
+      'output_summary': dict({
+        'human_feedback': None,
+        'report_chars': 75,
+      }),
+      'step_number': 6,
+    }),
+    dict({
+      'agent': 'supervisor',
+      'output_summary': dict({
+        'next_agent': 'done',
+        'step_count': 4,
+      }),
+      'step_number': 7,
+    }),
+  ])
+# ---
+# name: test_simple_topic_trajectory
+  list([
+    dict({
+      'agent': 'supervisor',
+      'output_summary': dict({
+        'next_agent': 'researcher',
+        'step_count': 1,
+      }),
+      'step_number': 1,
+    }),
+    dict({
+      'agent': 'researcher',
+      'output_summary': dict({
+        'findings_count': 3,
+      }),
+      'step_number': 2,
+    }),
+    dict({
+      'agent': 'supervisor',
+      'output_summary': dict({
+        'next_agent': 'critic',
+        'step_count': 2,
+      }),
+      'step_number': 3,
+    }),
+    dict({
+      'agent': 'critic',
+      'output_summary': dict({
+        'critique_chars': 40,
+      }),
+      'step_number': 4,
+    }),
+    dict({
+      'agent': 'supervisor',
+      'output_summary': dict({
+        'next_agent': 'writer',
+        'step_count': 3,
+      }),
+      'step_number': 5,
+    }),
+    dict({
+      'agent': 'writer',
+      'output_summary': dict({
+        'human_feedback': None,
+        'report_chars': 75,
+      }),
+      'step_number': 6,
+    }),
+    dict({
+      'agent': 'supervisor',
+      'output_summary': dict({
+        'next_agent': 'done',
+        'step_count': 4,
+      }),
+      'step_number': 7,
+    }),
+  ])
+# ---
