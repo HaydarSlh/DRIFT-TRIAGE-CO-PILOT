@@ -8,7 +8,7 @@ This document defines the HTTP contracts between the **Platform** (model service
 
 ## 1. Drift Alert Webhook (Platform → Agent)
 
-**Endpoint:** `POST /webhooks/drift`
+**Endpoint:** `POST /webhooks/drift`  
 **Contract Version Header:** `X-Contract-Version: drift-alert-v1`
 
 ### Request Body (JSON)
@@ -24,9 +24,9 @@ This document defines the HTTP contracts between the **Platform** (model service
 | `current_window.end` | string (ISO 8601) | yes | End of window. |
 | `current_window.num_predictions` | integer | yes | Number of predictions in the window. |
 | `drift_details` | object | yes | Drift metrics. |
-| `drift_details.psi` | object | yes | PSI per numeric feature. Keys are feature names, values are floats. Thresholds: `< 0.10` stable, `< 0.25` moderate, `>= 0.25` significant. |
-| `drift_details.chi2_psi` | object | yes | PSI-equivalent stability index per categorical feature (converted from chi², not the raw statistic). Same scale and thresholds as `psi`. Keys are feature names, values are floats. |
-| `drift_details.output_drift` | float | yes | Difference in positive-prediction proportion (current − reference). Positive = model predicting more positives than at training time. Negative = fewer. Magnitude matters more than sign for triage decisions. |
+| `drift_details.psi` | object | yes | PSI per numeric feature. Keys are feature names, values are floats. `< 0.10` stable, `< 0.25` moderate, `>= 0.25` significant. |
+| `drift_details.chi2` | object | yes | Chi‑squared statistic per categorical feature (raw test statistic, not p‑value or converted index). Keys are feature names, values are floats. Larger values indicate greater distribution shift; the agent uses comparison against critical values from chi‑square distribution tables. |
+| `drift_details.output_drift` | float | yes | Difference in positive‑prediction proportion (current − reference). Positive = model predicting more positives than at training time, negative = fewer. Magnitude matters more than sign for triage decisions. |
 
 ### Example
 
@@ -43,7 +43,7 @@ This document defines the HTTP contracts between the **Platform** (model service
   },
   "drift_details": {
     "psi": { "euribor3m": 0.31, "cons_price_idx": 0.09 },
-    "chi2_psi": { "job": 0.18, "marital": 0.04 },
+    "chi2": { "job": 18.2, "marital": 3.5 },
     "output_drift": 0.13
   }
 }
@@ -172,6 +172,6 @@ The dashboard reads pending approvals from the agent and posts human decisions b
 ## General rules
 
 - All endpoints MUST validate the `X-Contract-Version` header. Missing or unrecognised value → `400 Bad Request`.
-- Feature names in `drift_details.psi` and `drift_details.chi2_psi` use underscores (`cons_price_idx`), not dots — dots break JSON key parsing in some clients.
+- Feature names in `drift_details.psi` and `drift_details.chi2`use underscores (cons_price_idx), not dots — dots break JSON key parsing in some clients.
 - All timestamps are UTC ISO 8601 with `Z` suffix.
 - UUIDs are lowercase hyphenated (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`).
