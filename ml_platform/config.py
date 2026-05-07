@@ -37,3 +37,4 @@ NUMERIC_COLS = [
 ]
 
 AGENT_DRIFT_WEBHOOK_URL = "http://agent:8001/webhooks/drift"
+# AGENT_DRIFT_WEBHOOK_URL = "http://localhost:8001/webhooks/drift"

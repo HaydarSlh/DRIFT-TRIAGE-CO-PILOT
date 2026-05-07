@@ -9,6 +9,10 @@ import json
 import joblib
 import numpy as np
 from ml_platform.config import *
+import os
+custom_train = os.getenv("TRAIN_DATA_PATH")
+if custom_train:
+    TRAIN_PATH = Path(custom_train)
 
 def build_pipeline():
     numeric_features = NUMERIC_COLS + ["pdays_is_sentinel"]
@@ -81,7 +85,7 @@ if __name__ == "__main__":
         op_threshold = float(thresh[idx])
     else:
         op_threshold = 0.5
-        print("⚠️  No threshold meets recall >= 0.75 – using default 0.5")
+        print("⚠️  No threshold meets recall >= 0.75 - using default 0.5")
 
     val_preds = (y_prob_val >= op_threshold).astype(int)
     val_recall = recall_score(y_val, val_preds)
@@ -89,6 +93,16 @@ if __name__ == "__main__":
     val_auc = roc_auc_score(y_val, y_prob_val)
     print(f"Threshold {op_threshold:.4f} | Val Recall {val_recall:.3f} | "
           f"F1 {val_f1:.3f} | AUC {val_auc:.3f}")
+    
+    
+    
+    import mlflow
+    from ml_platform.config import MLFLOW_TRACKING_URI
+
+    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+    with mlflow.start_run(run_name="training_metrics_run") as run:
+        mlflow.log_metric("val_auc", val_auc)
+        mlflow.log_metric("val_recall", val_recall)
 
     # ------------------------------------------------------------
     # Final evaluation on test set
