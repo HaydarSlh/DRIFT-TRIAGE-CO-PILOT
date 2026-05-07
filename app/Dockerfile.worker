@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Copy root manifest and lock for dependency install
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --extra agent
+RUN uv sync --frozen --extra agent --extra worker
 
 # Copy the agent package code
 COPY ./app ./app
