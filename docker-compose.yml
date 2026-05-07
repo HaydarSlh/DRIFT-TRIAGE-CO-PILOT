@@ -1,13 +1,20 @@
-version: "3.11"
+version: "3.12"
 
 services:
+
   platform:
-    build: ./platform
+    build:
+      context: .                          # project root
+      dockerfile: ml_platform/Dockerfile   # path to your existing Dockerfile
     env_file: .env
     ports:
       - "8000:8000"
     depends_on:
       - postgres
+    volumes:
+      - mlruns:/app/mlruns                 # persist MLflow DB
+      - ./data:/app/data                   # (optional) live‑reload data
+      - ./artifacts:/app/artifacts          # (optional) live‑reload artifacts
 
   agent:
     build: ./agent
@@ -35,9 +42,9 @@ services:
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: db
     volumes:
       - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
       - pgdata:/var/lib/postgresql/data
@@ -51,3 +58,4 @@ services:
 
 volumes:
   pgdata:
+  mlruns:

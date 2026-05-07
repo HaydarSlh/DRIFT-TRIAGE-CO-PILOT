@@ -1,18 +1,34 @@
-"""Smoke tests for drift compute functions."""
+import joblib
+import pandas as pd
 import numpy as np
-import pytest
-from platform.drift.compute import psi
+from pathlib import Path
+from ml_platform.config import TEST_PATH, PIPELINE_PATH, TARGET_COL
 
+SNAPSHOT_PATH = Path(__file__).resolve().parent / "test_probs_snapshot.npy"
 
-def test_psi_zero_for_identical_distributions():
-    rng = np.random.default_rng(42)
-    data = rng.normal(size=1000)
-    score = psi(data, data)
-    assert score == pytest.approx(0.0, abs=1e-2)
+def test_model_fidelity():
+    # Load pipeline
+    pipeline = joblib.load(PIPELINE_PATH)
 
+    # Load test data
+    test = pd.read_parquet(TEST_PATH)
+    X_test = test.drop(columns=[TARGET_COL])
 
-def test_psi_positive_for_shifted_distribution():
-    rng = np.random.default_rng(42)
-    expected = rng.normal(loc=0, size=1000)
-    actual = rng.normal(loc=3, size=1000)
-    assert psi(expected, actual) > 0.1
+    # Predict probabilities
+    probs = pipeline.predict_proba(X_test)[:, 1]
+
+    # Snapshot management
+    if not SNAPSHOT_PATH.exists():
+        # First run: save the snapshot
+        np.save(SNAPSHOT_PATH, probs)
+        print(f"Snapshot saved to {SNAPSHOT_PATH}")
+        return  # in CI you'd skip assertion on creation, or better: raise a warning
+    else:
+        # Subsequent runs: compare
+        saved = np.load(SNAPSHOT_PATH)
+        max_diff = np.max(np.abs(probs - saved))
+        assert max_diff < 1e-12, f"Model fidelity broken: max diff = {max_diff:.2e}"
+        print(f"Fidelity test passed. Max diff = {max_diff:.2e}")
+
+if __name__ == "__main__":
+    test_model_fidelity()

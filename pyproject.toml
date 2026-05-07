@@ -6,7 +6,7 @@ build-backend = "setuptools.backends.legacy:build"
 name = "drift-triage-co-pilot"
 version = "0.1.0"
 description = "Autonomous drift detection and triage co-pilot"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 
 [tool.ruff]
 line-length = 100
