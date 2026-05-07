@@ -2,25 +2,34 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
-.venv/
 dist/
 build/
+.venv/
+venv/
 
-# Env
+# Environment & secrets
 .env
 
-# MLflow
+# Data (don't commit large CSVs)
+data/*.csv
+data/*.parquet    # optional – keep splits if they're small and you want reproducibility
+
+# MLflow artifacts (runs, registry DB)
 mlruns/
-mlartifacts/
+mlruns.db         # if you used SQLite backend
 
-# Pytest
-.pytest_cache/
-.coverage
-htmlcov/
+# Model artifacts
+artifacts/*.pkl
+artifacts/*.joblib
+artifacts/*.json   # threshold, reference stats – commit only if you want to share them
 
-# Ruff
-.ruff_cache/
-
-# OS
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
+
+# Test snapshots (will be regenerated in CI)
+tests/*.npy       # or keep it if you want the fidelity snapshot under version control
