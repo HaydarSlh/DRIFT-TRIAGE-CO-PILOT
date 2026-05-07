@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.config import get_settings
-from app.queue import JobResult, JobStatus, QueueClient, store_result
+from app.taskqueue import JobResult, JobStatus, QueueClient, store_result
 from tests.queue.conftest import StubArqPool
 
 

@@ -87,7 +87,7 @@ async def test_graph_runs_with_queue_enabled_and_inline_worker(
     # Patch ``call_tool`` on both the package binding and the researcher
     # binding. Either monkeypatch alone leaves the other in place because
     # the researcher imported the symbol at module load.
-    from app.queue.tasks import TASK_REGISTRY
+    from app.taskqueue.tasks import TASK_REGISTRY
 
     call_log: list[str] = []
 

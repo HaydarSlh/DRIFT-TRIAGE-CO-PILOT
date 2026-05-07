@@ -22,8 +22,8 @@ from typing import Any
 import pytest
 
 from app.core.errors import ToolError, TransientToolError
-from app.queue import JobStatus, load_result
-from app.queue.tasks import _run_with_retry
+from app.taskqueue import JobStatus, load_result
+from app.taskqueue.tasks import _run_with_retry
 
 
 @pytest.mark.slow
@@ -79,7 +79,7 @@ async def test_idempotency_skip_on_redelivery_when_result_exists(
     Drives the wrapper twice. The second invocation should NOT call into
     the function body — it should return the cached result directly.
     """
-    from app.queue import JobResult, store_result
+    from app.taskqueue import JobResult, store_result
     from app.workers.tasks.web_search import web_search
 
     job_id = "redeliver-1"
@@ -107,7 +107,7 @@ async def test_permanent_failure_lands_in_dlq_not_silently_dropped(
 ) -> None:
     """The DLQ is the floor — permanent failures cannot disappear."""
     from app.core.errors import PermanentToolError
-    from app.queue.dlq import list_dlq
+    from app.taskqueue.dlq import list_dlq
 
     async def doomed(_payload: dict[str, Any]) -> dict[str, Any]:
         raise PermanentToolError("4xx something")

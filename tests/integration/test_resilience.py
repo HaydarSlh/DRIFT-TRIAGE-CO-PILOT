@@ -17,8 +17,8 @@ from typing import Any
 import pytest
 
 from app.core.errors import PermanentToolError, ToolError, TransientToolError
-from app.queue import JobStatus, load_result
-from app.queue.tasks import _run_with_retry
+from app.taskqueue import JobStatus, load_result
+from app.taskqueue.tasks import _run_with_retry
 from app.workers.tasks.web_search import _RATE_LIMIT_HITS, web_search
 
 

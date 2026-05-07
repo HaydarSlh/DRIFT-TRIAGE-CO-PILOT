@@ -1,4 +1,0 @@
-Draft a concise Slack message (≤ 3 sentences) notifying the ML team of the following:
-- Model: {model_id}
-- Drift severity: {triage_decision}
-- Action taken: {action_taken}
