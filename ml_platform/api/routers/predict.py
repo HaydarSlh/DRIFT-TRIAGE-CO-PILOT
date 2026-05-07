@@ -81,28 +81,30 @@ def to_json_safe(obj):
 
 async def emit_webhook(severity: str, prev_severity: str, drift_metrics: dict):
     now = datetime.now(timezone.utc)
-    payload = DriftAlert(
-        timestamp=now.isoformat().replace("+00:00", "Z"),
-        event_id=str(uuid.uuid4()),
-        model_id=REGISTERED_MODEL_NAME,
-        severity=severity,
-        previous_severity=prev_severity,
-        current_window=DriftAlertWindow(
-            start=(now - timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
-            end=now.isoformat().replace("+00:00", "Z"),
-            num_predictions=len(_window.records)
-        ),
-        drift_details=DriftAlertDetails(
-            psi=drift_metrics["psi"],
-            chi2=drift_metrics["chi2"],
-            output_drift=drift_metrics["output_drift"]
-        )
-    )
+
+    # Build payload as a flat dictionary – matches the agent’s DriftEvent model
+    payload = {
+        "timestamp": now.isoformat().replace("+00:00", "Z"),
+        "event_id": str(uuid.uuid4()),
+        "model_id": REGISTERED_MODEL_NAME,
+        "model_version": "",                         # platform doesn’t track version
+        "severity": severity,
+        "previous_severity": prev_severity,
+        "current_window": {
+            "start": (now - timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
+            "end": now.isoformat().replace("+00:00", "Z"),
+            "num_predictions": len(_window.records)
+        },
+        # Drift metrics at TOP level (flat, not nested)
+        "psi": drift_metrics["psi"],
+        "chi2": drift_metrics["chi2"],
+        "output_drift": drift_metrics["output_drift"]
+    }
 
     # Serialize to JSON string
-    body = payload.model_dump_json().encode("utf-8")
+    body = json.dumps(payload).encode("utf-8")
 
-    # Compute HMAC-SHA256 signature
+    # Compute HMAC‑SHA256 signature (same as before)
     signature = hmac.new(
         AGENT_WEBHOOK_SECRET.encode("utf-8"),
         body,
@@ -119,7 +121,7 @@ async def emit_webhook(severity: str, prev_severity: str, drift_metrics: dict):
         try:
             resp = await client.post(
                 AGENT_DRIFT_WEBHOOK_URL,
-                content=body,            # send raw bytes, not json=
+                content=body,
                 headers=headers,
                 timeout=5
             )

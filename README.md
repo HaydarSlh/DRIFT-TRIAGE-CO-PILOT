@@ -19,4 +19,6 @@ Autonomous ML drift detection and triage system powered by a LangGraph agent.
 cp .env.example .env
 docker compose up --build
 ```
+
+Remove-Item -Recurse -Force mlruns
 docker compose exec platform python /app/scripts/final_register.py 

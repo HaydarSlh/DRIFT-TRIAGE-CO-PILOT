@@ -2,7 +2,7 @@
 
 import uuid
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -56,5 +56,5 @@ class ApprovalRepository:
             raise LookupError(f"approval {approval_id} not found")
         approval.status = ApprovalStatus.APPROVED if approved else ApprovalStatus.REJECTED
         approval.reviewer_response = feedback
-        approval.resolved_at = datetime.now(UTC)
+        approval.resolved_at = datetime.now(timezone.utc).replace(tzinfo=None)
         return approval

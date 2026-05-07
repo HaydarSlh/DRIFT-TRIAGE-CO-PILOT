@@ -24,11 +24,11 @@ AgentRole = Literal["supervisor", "triage", "action", "comms", "classifier"]
 
 
 PINNED_MODELS: dict[AgentRole, str] = {
-    "supervisor": "gemini-2.5-flash",
-    "triage": "gemini-2.5-flash",
-    "action": "gemini-2.5-flash",
-    "comms": "gemini-2.5-flash",
-    "classifier": "gemini-2.5-flash",
+    "supervisor": "claude-haiku-4-5-20251001",
+    "triage": "claude-haiku-4-5-20251001",
+    "action": "claude-haiku-4-5-20251001",
+    "comms": "claude-haiku-4-5-20251001",
+    "classifier": "claude-haiku-4-5-20251001",
 }
 
 

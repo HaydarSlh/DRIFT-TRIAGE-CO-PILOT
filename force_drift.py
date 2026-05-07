@@ -9,7 +9,7 @@ std_euribor = df['euribor3m'].std()
 print("Sending 600 drifted rows...")
 for i in range(100):
     row = df.iloc[i % len(df)].to_dict()
-    row['euribor3m'] = float(row['euribor3m']) + 2 * std_euribor
+    row['euribor3m'] = float(row['euribor3m']) + 8 * std_euribor
     row['job'] = 'housemaid'
     # convert numpy types to native Python
     row = {k: (int(v) if isinstance(v, (np.integer,)) else float(v) if isinstance(v, (np.floating,)) else v) for k, v in row.items()}
