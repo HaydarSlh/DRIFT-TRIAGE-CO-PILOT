@@ -40,7 +40,7 @@ def generate_drifted_train():
 
     # Shift euribor3m by +2 std
     std_euribor = df['euribor3m'].std()
-    df['euribor3m'] = df['euribor3m'] + 2 * std_euribor
+    df['euribor3m'] = df['euribor3m'] + 9 * std_euribor
 
     # Shift 'job' to 'housemaid' for half the rows
     rng = np.random.default_rng(42)

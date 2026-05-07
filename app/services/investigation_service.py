@@ -161,6 +161,9 @@ class InvestigationService:
         decision: dict[str, Any],
     ) -> None:
         """Resume an interrupted run with the reviewer's decision."""
+        config = {"configurable": {"thread_id": thread_id}}
+
+        # 1. Get the investigation record (for status updates and ID recovery)
         async with self._sessionmaker() as session:
             repo = InvestigationRepository(session)
             investigation = await repo.get_by_thread(thread_id)
@@ -168,10 +171,28 @@ class InvestigationService:
                 raise LookupError(f"no investigation for thread_id={thread_id}")
             investigation_id = investigation.id
 
-        config = {"configurable": {"thread_id": thread_id}}
+        # 2. Retrieve the *current* graph state from the checkpointer.
+        #    It contains the drift_event that was stored during run_in_background.
+        current_state = await self._graph.aget_state(config)
+        if current_state is None or current_state.values is None:
+            raise LookupError("missing checkpoint state for thread_id=" + thread_id)
+
+        drift_event = current_state.values.get("drift_event")
+        if drift_event is None:
+            log.error("drift_event missing from checkpoint state", thread_id=thread_id)
+            raise AgentError("drift_event missing from state on resume")
+
+        # 3. Build a command that resumes with the decision AND re‑supplies the drift_event.
+        #    This ensures the triage node will always find it.
+        command = Command(
+            resume=decision,
+            update={"drift_event": drift_event}
+        )
+
+        # 4. Set status to RUNNING and drive the graph
         await self._set_status(investigation_id, InvestigationStatus.RUNNING)
         try:
-            await self._drive_graph(investigation_id, Command(resume=decision), config)
+            await self._drive_graph(investigation_id, command, config)
         except Exception as exc:
             log.exception("resume_failed", thread_id=thread_id, error=str(exc))
             await self._set_status(investigation_id, InvestigationStatus.FAILED)
