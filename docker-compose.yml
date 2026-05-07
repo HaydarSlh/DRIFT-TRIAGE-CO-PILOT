@@ -15,6 +15,7 @@ services:
       - ./mlruns:/app/mlruns                # persist MLflow DB
       - ./data:/app/data                 # (optional) live‑reload data
       - ./artifacts:/app/artifacts         # (optional) live‑reload artifacts
+      - ./scripts:/app/scripts 
 
   agent:
     build:
