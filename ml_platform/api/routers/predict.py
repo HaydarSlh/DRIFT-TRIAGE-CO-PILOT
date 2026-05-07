@@ -10,6 +10,12 @@ from ml_platform.config import *
 from ml_platform.drift.compute import RollingWindow, psi, chi2, output_drift, compute_severity
 from ml_platform.schemas import PredictionRequest, PredictionResponse, DriftAlert, DriftAlertWindow, DriftAlertDetails
 import httpx
+from datetime import datetime, timezone, timedelta
+from ml_platform.config import REGISTERED_MODEL_NAME
+from ml_platform.config import AGENT_WEBHOOK_SECRET
+import hashlib
+import hmac
+
 
 # ------------------------------------------------------------
 # Logging – make sure webhook messages are visible
@@ -73,15 +79,17 @@ def to_json_safe(obj):
         return list(obj)
     return obj
 
-async def emit_webhook(severity, prev_severity, drift_metrics):
+async def emit_webhook(severity: str, prev_severity: str, drift_metrics: dict):
+    now = datetime.now(timezone.utc)
     payload = DriftAlert(
-        timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        timestamp=now.isoformat().replace("+00:00", "Z"),
         event_id=str(uuid.uuid4()),
+        model_id=REGISTERED_MODEL_NAME,
         severity=severity,
         previous_severity=prev_severity,
         current_window=DriftAlertWindow(
-            start="TODO",
-            end=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            start=(now - timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
+            end=now.isoformat().replace("+00:00", "Z"),
             num_predictions=len(_window.records)
         ),
         drift_details=DriftAlertDetails(
@@ -90,10 +98,31 @@ async def emit_webhook(severity, prev_severity, drift_metrics):
             output_drift=drift_metrics["output_drift"]
         )
     )
-    headers = {"X-Contract-Version": "drift-alert-v1"}
+
+    # Serialize to JSON string
+    body = payload.model_dump_json().encode("utf-8")
+
+    # Compute HMAC-SHA256 signature
+    signature = hmac.new(
+        AGENT_WEBHOOK_SECRET.encode("utf-8"),
+        body,
+        hashlib.sha256
+    ).hexdigest()
+
+    headers = {
+        "X-Contract-Version": "drift-alert-v1",
+        "X-HMAC-Signature": signature,
+        "Content-Type": "application/json"
+    }
+
     async with httpx.AsyncClient() as client:
         try:
-            resp = await client.post(AGENT_DRIFT_WEBHOOK_URL, json=payload.model_dump(), headers=headers, timeout=5)
+            resp = await client.post(
+                AGENT_DRIFT_WEBHOOK_URL,
+                content=body,            # send raw bytes, not json=
+                headers=headers,
+                timeout=5
+            )
             logger.info(f"Webhook sent, status {resp.status_code}")
         except Exception as e:
             logger.error(f"Webhook failed: {e}")

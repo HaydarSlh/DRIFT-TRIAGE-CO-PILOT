@@ -53,6 +53,7 @@ class DriftAlert(BaseModel):
     """Payload sent to agent at POST /webhooks/drift"""
     timestamp: str                                # ISO 8601
     event_id: str                                  # UUID
+    model_id: str  
     severity: Literal["green", "yellow", "red"]
     previous_severity: Literal["green", "yellow", "red"]
     current_window: DriftAlertWindow

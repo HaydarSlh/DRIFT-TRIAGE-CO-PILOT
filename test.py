@@ -1,25 +1,16 @@
 import mlflow
 from mlflow.tracking import MlflowClient
-from ml_platform.config import MLFLOW_TRACKING_URI, REGISTERED_MODEL_NAME
 
-def log_missing_metrics():
-    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-    client = MlflowClient()
+mlflow.set_tracking_uri('sqlite:///mlruns/mlflow.db')
+client = MlflowClient()
 
-    # Get the run that generated version 1
-    mv = client.get_model_version(name=REGISTERED_MODEL_NAME, version="1")
-    run_id = mv.run_id
-    print(f"Found model version 1, run_id = {run_id}")
+versions = client.search_model_versions('name=BankMarketingClassifier')
+latest = max(versions, key=lambda v: int(v.version))
 
-    # Log the metrics you already computed during training
-    # (use the values printed by your train.py – e.g. Test AUC 0.780, Recall 0.767)
-    with mlflow.start_run(run_id=run_id):
-        mlflow.log_metric("val_auc", 0.780)      # ← replace with your actual Test AUC
-        mlflow.log_metric("val_recall", 0.767)   # ← replace with your actual Test Recall
-
-    # Verify they are now visible
-    run = client.get_run(run_id)
-    print("Metrics after update:", run.data.metrics)
-
-if __name__ == "__main__":
-    log_missing_metrics()
+client.transition_model_version_stage(
+    name='BankMarketingClassifier',
+    version=latest.version,
+    stage='Production',
+    archive_existing_versions=True
+)
+print(f'Promoted version {latest.version} to Production.')

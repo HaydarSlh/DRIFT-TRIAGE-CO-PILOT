@@ -5,14 +5,16 @@ services:
       context: .                          # project root
       dockerfile: ml_platform/Dockerfile   # path to your existing Dockerfile
     env_file: .env
+    environment:
+      - PLATFORM_WEBHOOK_SECRET=supersecrets
     ports:
       - "8000:8000"
     depends_on:
       - postgres
     volumes:
-      - mlruns:/app/mlruns                 # persist MLflow DB
-      - ./data:/app/data                   # (optional) live‑reload data
-      - ./artifacts:/app/artifacts          # (optional) live‑reload artifacts
+      - ./mlruns:/app/mlruns                # persist MLflow DB
+      - ./data:/app/data                 # (optional) live‑reload data
+      - ./artifacts:/app/artifacts         # (optional) live‑reload artifacts
 
   agent:
     build:

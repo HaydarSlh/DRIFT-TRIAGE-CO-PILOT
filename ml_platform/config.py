@@ -1,6 +1,9 @@
 from pathlib import Path
 
+
 ROOT = Path(__file__).resolve().parent.parent
+
+
 
 # Data
 DATA_PATH = ROOT / "data" / "bank-additional-full.csv"
@@ -38,3 +41,6 @@ NUMERIC_COLS = [
 
 AGENT_DRIFT_WEBHOOK_URL = "http://agent:8001/webhooks/drift"
 # AGENT_DRIFT_WEBHOOK_URL = "http://localhost:8001/webhooks/drift"
+
+import os
+AGENT_WEBHOOK_SECRET = os.getenv("PLATFORM_WEBHOOK_SECRET", "")

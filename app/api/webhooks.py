@@ -55,7 +55,13 @@ async def on_drift_event(
     if settings and hasattr(settings, "platform_webhook_secret") and settings.platform_webhook_secret:
         body = await request.body()
         sig = request.headers.get("X-HMAC-Signature")
-        secret = settings.platform_webhook_secret.get_secret_value()
+        raw = settings.platform_webhook_secret
+        if raw is None:
+            secret = None
+        elif hasattr(raw, "get_secret_value"):
+            secret = raw.get_secret_value()
+        else:
+            secret = str(raw)
         if not _verify_hmac(body, sig, secret):
             raise HTTPException(status_code=401, detail="Invalid HMAC signature")
 
