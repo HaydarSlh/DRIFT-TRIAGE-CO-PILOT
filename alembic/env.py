@@ -23,8 +23,6 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Inject the URL from settings into Alembic's config so this single source of
-# truth is the .env file.
 settings = get_settings()
 config.set_main_option("sqlalchemy.url", settings.alembic_database_url)
 

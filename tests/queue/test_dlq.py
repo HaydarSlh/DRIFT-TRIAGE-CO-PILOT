@@ -16,8 +16,8 @@ from datetime import UTC, timedelta
 from typing import Any
 
 from app.config import get_settings
-from app.queue import JobStatus, QueueClient, load_result, push_to_dlq
-from app.queue.dlq import DLQEntry, list_dlq, purge_dlq, requeue_from_dlq
+from app.taskqueue import JobStatus, QueueClient, load_result, push_to_dlq
+from app.taskqueue.dlq import DLQEntry, list_dlq, purge_dlq, requeue_from_dlq
 from tests.queue.conftest import StubArqPool
 
 

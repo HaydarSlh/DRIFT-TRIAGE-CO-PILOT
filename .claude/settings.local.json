@@ -3,7 +3,11 @@
     "allow": [
       "PowerShell(cd \"c:\\\\Users\\\\saleh\\\\OneDrive\\\\Desktop\\\\AIE bootcamp\\\\DRIFT-TRIAGE-CO-PILOT\" && Get-ChildItem -Recurse -Force | Select-Object FullName | ForEach-Object { $_.FullName } | Sort-Object)",
       "PowerShell(cd \"c:\\\\Users\\\\saleh\\\\OneDrive\\\\Desktop\\\\AIE bootcamp\\\\DRIFT-TRIAGE-CO-PILOT\" && tree /a /f 2>$null || Get-ChildItem -Recurse -Force | Where-Object { -not $_.FullName.Contains\\(\"\\\\.git\"\\) } | Select-Object FullName | ForEach-Object { $_.FullName } | Sort-Object)",
-      "PowerShell(cd \"c:\\\\Users\\\\saleh\\\\OneDrive\\\\Desktop\\\\AIE bootcamp\\\\DRIFT-TRIAGE-CO-PILOT\" && Get-ChildItem -Recurse -Force -Exclude \".git\" | Select-Object -Property FullName, @{Name=\"Type\"; Expression={if\\($_.PSIsContainer\\) {\"Folder\"} else {\"File\"}}} | Sort-Object FullName | Format-Table -AutoSize)"
+      "PowerShell(cd \"c:\\\\Users\\\\saleh\\\\OneDrive\\\\Desktop\\\\AIE bootcamp\\\\DRIFT-TRIAGE-CO-PILOT\" && Get-ChildItem -Recurse -Force -Exclude \".git\" | Select-Object -Property FullName, @{Name=\"Type\"; Expression={if\\($_.PSIsContainer\\) {\"Folder\"} else {\"File\"}}} | Sort-Object FullName | Format-Table -AutoSize)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\saleh\\\\OneDrive\\\\Desktop\\\\AIE bootcamp\\\\DRIFT-TRIAGE-CO-PILOT\\\\agenticPilot\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(ConvertTo-Csv -NoTypeInformation)",
+      "Bash(Out-String)"
     ]
   }
 }
