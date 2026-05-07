@@ -31,32 +31,24 @@ class RetrainOutput(BaseModel):
 
 @task("retrain_shadow", retry_on=(TransientToolError,), no_retry_on=(PermanentToolError,))
 async def retrain_shadow(payload: dict[str, Any]) -> dict[str, Any]:
-    """Kick off a shadow retraining run.
-
-    Args:
-        payload: ``{"model_id": "...", "dataset_version": "latest"}``.
-
-    Returns:
-        ``{"model_id", "candidate_version", "training_run_id"}``.
     """
-    try:
-        parsed = RetrainInput.model_validate(payload)
-    except Exception as exc:
-        raise PermanentToolError(f"invalid retrain payload: {exc}") from exc
-
+    Kick off a retraining run on the platform via the /retrain endpoint.
+    The platform endpoint requires no request body – it generates drifted data
+    and trains a new model automatically.
+    """
     import httpx
     from app.config import get_settings
 
     settings = get_settings()
     platform_url = settings.platform_url
 
-    log.info("retrain_started", model_id=parsed.model_id, dataset_version=parsed.dataset_version)
+    log.info("retrain_started", platform_url=platform_url)
 
     try:
         async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(
-                f"{platform_url}/models/train",
-                json={"model_id": parsed.model_id, "dataset_version": parsed.dataset_version},
+                f"{platform_url}/retrain",
+                # No JSON body – the platform’s /retrain doesn’t expect one
             )
     except httpx.ConnectError as exc:
         raise TransientToolError(f"retrain connect failed: {exc}") from exc
@@ -71,8 +63,11 @@ async def retrain_shadow(payload: dict[str, Any]) -> dict[str, Any]:
         raise PermanentToolError(f"retrain client error {response.status_code}: {response.text}")
 
     data = response.json()
-    return RetrainOutput(
-        model_id=parsed.model_id,
-        candidate_version=data.get("candidate_version", "unknown"),
-        training_run_id=data.get("training_run_id", ""),
-    ).model_dump()
+
+    # The platform’s /retrain returns:
+    # {"status": "success", "model_version": 2, "mlflow_run_id": "..."}
+    return {
+        "model_id": data.get("model_id", "BankMarketingClassifier"),
+        "candidate_version": str(data.get("model_version")),
+        "training_run_id": data.get("mlflow_run_id", "")
+    }

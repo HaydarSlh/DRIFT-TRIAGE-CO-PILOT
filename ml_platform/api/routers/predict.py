@@ -79,7 +79,7 @@ def to_json_safe(obj):
         return list(obj)
     return obj
 
-async def emit_webhook(severity: str, prev_severity: str, drift_metrics: dict):
+async def emit_webhook(severity: str, prev_severity: str, drift_metrics: dict,model_version: str = ""):
     now = datetime.now(timezone.utc)
 
     # Build payload as a flat dictionary – matches the agent’s DriftEvent model
@@ -87,7 +87,7 @@ async def emit_webhook(severity: str, prev_severity: str, drift_metrics: dict):
         "timestamp": now.isoformat().replace("+00:00", "Z"),
         "event_id": str(uuid.uuid4()),
         "model_id": REGISTERED_MODEL_NAME,
-        "model_version": "",                         # platform doesn’t track version
+        "model_version": model_version,                         # platform doesn’t track version
         "severity": severity,
         "previous_severity": prev_severity,
         "current_window": {
@@ -125,6 +125,8 @@ async def emit_webhook(severity: str, prev_severity: str, drift_metrics: dict):
                 headers=headers,
                 timeout=5
             )
+            if resp.status_code != 200:
+                logger.error(f"Webhook error response: {resp.status_code} - {resp.text}")
             logger.info(f"Webhook sent, status {resp.status_code}")
         except Exception as e:
             logger.error(f"Webhook failed: {e}")
@@ -203,7 +205,7 @@ async def predict(request: PredictionRequest):
             drift_metrics["output_drift"]
         )
         if severity != _last_severity:
-            await emit_webhook(severity, _last_severity, drift_metrics)
+            await emit_webhook(severity, _last_severity, drift_metrics,model_version=str(_version))
             _last_severity = severity
 
     return PredictionResponse(probability=prob, prediction=pred)
