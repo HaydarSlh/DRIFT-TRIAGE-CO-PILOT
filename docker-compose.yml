@@ -48,10 +48,18 @@ services:
   dashboard:
     build: ./dashboard
     env_file: .env
+    environment:
+      - AGENT_URL=http://agent:8001
+      - PLATFORM_URL=http://platform:8000
+      - MLFLOW_TRACKING_URI=http://platform:5000
+      - DASHBOARD_DB_PATH=/app/data/dashboard.db
     ports:
       - "8501:8501"
+    volumes:
+      - dashboard_data:/app/data
     depends_on:
       - platform
+      - agent
 
   postgres:
     image: postgres:16
@@ -79,3 +87,4 @@ volumes:
   pgdata:
   mlruns:
   redis_data:
+  dashboard_data:
