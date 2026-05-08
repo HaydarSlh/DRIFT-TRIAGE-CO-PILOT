@@ -32,19 +32,24 @@ class RetrainResponse(BaseModel):
     model_version: int
     mlflow_run_id: str
 
-# --- Drifted data generation (reuse from drifted_data.py) ---
+# --- Drifted data generation ---
 def generate_drifted_train():
-    """Creates a drifted version of the original train split."""
+    """Creates a moderately drifted version of the original train split.
+
+    Mirrors the kind of drift the platform actually observes in production
+    (euribor3m shifted ~2σ, a fraction of `job` values relabeled), so the
+    retrained model learns to handle the new distribution without being
+    trained on absurdly skewed data.
+    """
     train = pd.read_parquet(TRAIN_PATH)
     df = train.copy()
 
-    # Shift euribor3m by +2 std
     std_euribor = df['euribor3m'].std()
-    df['euribor3m'] = df['euribor3m'] + 9 * std_euribor
+    df['euribor3m'] = df['euribor3m'] + 2 * std_euribor
 
-    # Shift 'job' to 'housemaid' for half the rows
     rng = np.random.default_rng(42)
-    mask = rng.choice(df.index, size=len(df)//2, replace=False)
+    n_relabel = int(len(df) * 0.30)
+    mask = rng.choice(df.index, size=n_relabel, replace=False)
     df.loc[mask, 'job'] = 'housemaid'
 
     drifted_path = TRAIN_PATH.parent / "drifted_train.parquet"
@@ -53,13 +58,21 @@ def generate_drifted_train():
 
 # --- Training + registration helper ---
 def train_and_register(drifted_data_path: Path):
-    """Trains on the given dataset, registers the model, and returns version + run_id."""
+    """Trains on original ∪ drifted, registers the model, returns version + run_id.
+
+    Training on the union (rather than only the drifted slice) keeps the new
+    model competent on the original distribution while teaching it the new one
+    — the standard 'train through drift' pattern. The validation set stays
+    on the original distribution so val metrics remain comparable across
+    retrains.
+    """
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     client = MlflowClient()
 
-    # Load drifted training data and validation set (original val split is fine)
-    train = pd.read_parquet(drifted_data_path)
-    val = pd.read_parquet(TRAIN_PATH.parent / "val.parquet")   # keep val unchanged
+    train_orig = pd.read_parquet(TRAIN_PATH)
+    train_drifted = pd.read_parquet(drifted_data_path)
+    train = pd.concat([train_orig, train_drifted], ignore_index=True)
+    val = pd.read_parquet(TRAIN_PATH.parent / "val.parquet")   # unchanged distribution
 
     X_train, y_train = train.drop(columns=[TARGET_COL]), train[TARGET_COL]
     X_val, y_val = val.drop(columns=[TARGET_COL]), val[TARGET_COL]
@@ -114,7 +127,7 @@ def train_and_register(drifted_data_path: Path):
         )
         mlflow.log_metric("val_auc", val_auc)
         mlflow.log_metric("val_recall", val_recall)
-        mlflow.log_param("operating_threshold", op_threshold)
+        mlflow.log_metric("operating_threshold", op_threshold)
 
         run_id = run.info.run_id
 

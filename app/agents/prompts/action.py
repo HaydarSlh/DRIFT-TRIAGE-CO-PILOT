@@ -28,6 +28,17 @@ Valid actions (choose exactly one):
 - rollback: Revert Production to the previous registered model version. This DOES require
   human approval because it directly changes Production.
 
+Decision rules — apply in order, pick the first match:
+1. If severity is LOW → none.
+2. If severity is MEDIUM → replay_test (cheap diagnostic, no approval needed).
+3. If severity is HIGH:
+   - If drift is concentrated in numeric features (max PSI ≥ 0.5) without large
+     categorical breakage (max chi² < 20) → retrain_shadow. The model needs to
+     relearn the new feature distribution, but isn't broken.
+   - Otherwise → replay_test first to confirm the picture before retraining.
+4. If severity is CRITICAL → rollback. Production is failing now; restore a
+   known-good version, then investigate.
+
 Provide a short justification (≤ 3 sentences) and, if rollback, specify the target_version.
 
 Respond with the structured output containing `action_type`, `justification`, and `target_version`.

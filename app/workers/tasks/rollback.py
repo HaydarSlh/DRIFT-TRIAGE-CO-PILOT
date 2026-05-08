@@ -1,11 +1,8 @@
 """``rollback`` — revert Production to a previous registered model version.
 
-Calls the platform's ``POST /registry/promote`` endpoint with ``target_version``.
-
-Critical: the idempotency key must encode the *target version*, not just the
-model_id, so two retries against different target versions don't collide.
-The caller (comms_node via call_tool) passes an idempotency key that includes
-the thread_id and action_type, which is sufficient for uniqueness.
+Calls the platform's ``POST /registry/rollback`` endpoint (contract: rollback-v1).
+The platform identifies the current Production version, demotes it, and
+promotes ``target_version`` in its place.
 """
 
 from __future__ import annotations
@@ -19,6 +16,8 @@ from app.core.logging import get_logger
 from app.taskqueue import task
 
 log = get_logger(__name__)
+
+ROLLBACK_CONTRACT = "rollback-v1"
 
 
 class RollbackInput(BaseModel):
@@ -58,13 +57,13 @@ async def rollback(payload: dict[str, Any]) -> dict[str, Any]:
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
-                f"{platform_url}/rollback",
+                f"{platform_url}/registry/rollback",
                 json={
-                    "action": "rollback",
-                    "model_version": parsed.target_version,
                     "model_id": parsed.model_id,
+                    "target_version": parsed.target_version,
                     "reason": f"Drift rollback to version {parsed.target_version}",
                 },
+                headers={"X-Contract-Version": ROLLBACK_CONTRACT},
             )
     except httpx.ConnectError as exc:
         raise TransientToolError(f"rollback connect failed: {exc}") from exc
@@ -81,6 +80,6 @@ async def rollback(payload: dict[str, Any]) -> dict[str, Any]:
     data = response.json()
     return RollbackOutput(
         model_id=parsed.model_id,
-        previous_version=data.get("previous_version", ""),
-        new_production_version=data.get("new_production_version", parsed.target_version),
+        previous_version=str(data.get("previous_version", "")),
+        new_production_version=str(data["new_production_version"]),
     ).model_dump()

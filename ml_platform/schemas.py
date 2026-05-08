@@ -77,3 +77,20 @@ class PromotionResponse(BaseModel):
     status: Literal["promoted", "rolled_back"]
     new_production_version: str
     mlflow_run_id: str
+
+# ------------------------------------------------------------
+# Rollback request (Agent → Platform)
+# Contract: rollback-v1
+# ------------------------------------------------------------
+class RollbackRequest(BaseModel):
+    """Received at POST /registry/rollback"""
+    model_id: str
+    target_version: str = Field(..., description="Version to roll Production back to.")
+    reason: str = ""
+
+class RollbackResponse(BaseModel):
+    """Returned after successful rollback"""
+    model_id: str
+    previous_version: str = Field(..., description="The Production version that was demoted (or '' if none).")
+    new_production_version: str
+    mlflow_run_id: str = ""
