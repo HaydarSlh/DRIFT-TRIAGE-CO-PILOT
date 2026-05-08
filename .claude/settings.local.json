@@ -15,7 +15,14 @@
       "PowerShell(docker compose ps)",
       "PowerShell(docker compose logs worker --tail 30)",
       "PowerShell(docker compose logs platform --tail 30)",
-      "PowerShell(docker compose logs agent --tail 40)"
+      "PowerShell(docker compose logs agent --tail 40)",
+      "PowerShell(docker compose logs platform --tail 20)",
+      "PowerShell(docker compose logs agent --tail 20)",
+      "PowerShell(docker compose exec agent uv run python -c \"import asyncio; from app.config import get_settings; from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker; from sqlalchemy import text; s=get_settings\\(\\); engine=create_async_engine\\(s.database_url\\); sm=async_sessionmaker\\(engine\\); asyncio.run\\(sm\\(\\).__aenter__\\(\\)\\)\" 2>&1)",
+      "PowerShell(head -5)",
+      "PowerShell(docker compose exec postgres psql -U postgres -d db -c \"SELECT id, status, severity, created_at FROM investigations ORDER BY created_at DESC LIMIT 5;\")",
+      "PowerShell(Invoke-WebRequest -Uri \"http://localhost:5000/api/2.0/mlflow/registered-models/list\" -UseBasicParsing)",
+      "PowerShell(docker compose exec platform mlflow server --help 2>&1)"
     ]
   }
 }
