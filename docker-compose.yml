@@ -8,14 +8,29 @@ services:
     environment:
       - PLATFORM_WEBHOOK_SECRET=supersecrets
     ports:
-      - "8000:8000"
+      - "8080:8000"                        # platform API (host:8080 → container:8000)
+      - "5000:5000"                        # MLflow tracking server UI
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     volumes:
       - ./mlruns:/app/mlruns                # persist MLflow DB
       - ./data:/app/data                 # (optional) live‑reload data
       - ./artifacts:/app/artifacts         # (optional) live‑reload artifacts
-      - ./scripts:/app/scripts 
+      - ./scripts:/app/scripts
+
+  migrate:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/db
+    command: ["uv", "run", "alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
   agent:
     build:
@@ -26,12 +41,18 @@ services:
       - POSTGRES_URI=postgresql://postgres:postgres@postgres:5432/db
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/db
       - REDIS_URL=redis://redis:6379/0
-      - QUEUE_REDIS_URL=redis://redis:6379/0 
+      - QUEUE_REDIS_URL=redis://redis:6379/3
+      - PLATFORM_URL=http://platform:8000
+      - JOB_TIMEOUT_S=300
     ports:
       - "8001:8001"
     depends_on:
-      - platform
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   worker:
     build:
@@ -39,11 +60,16 @@ services:
       dockerfile: app/Dockerfile.worker
     env_file: .env
     environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/db
       - REDIS_URL=redis://redis:6379/0
-      - QUEUE_REDIS_URL=redis://redis:6379/0  
+      - QUEUE_REDIS_URL=redis://redis:6379/3
+      - PLATFORM_URL=http://platform:8000
+      - JOB_TIMEOUT_S=300
     depends_on:
-        redis:
-          condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   dashboard:
     build: ./dashboard
@@ -72,6 +98,11 @@ services:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d db"]
+      interval: 3s
+      timeout: 5s
+      retries: 15
 
   redis:
     image: redis/redis-stack-server:latest

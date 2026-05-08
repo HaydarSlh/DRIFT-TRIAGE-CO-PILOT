@@ -7,10 +7,11 @@ is Production-touching (retrain_shadow or rollback). Each pause creates an
 with the reviewer's verdict fed back into the interrupt.
 """
 
+import asyncio
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
 from app.core.logging import get_logger
 from app.deps import get_approval_service
@@ -34,13 +35,22 @@ async def list_pending(service: ApprovalServiceDep) -> list[ApprovalSummary]:
 async def respond(
     approval_id: uuid.UUID,
     payload: ApprovalResponseRequest,
+    background_tasks: BackgroundTasks,
     service: ApprovalServiceDep,
 ) -> ApprovalSummary:
-    """Resolve an approval and resume its graph run with the verdict."""
+    """Resolve an approval and resume its graph run with the verdict.
+
+    The DB row is updated synchronously so the caller gets immediate confirmation.
+    The graph resume (LLM calls + tool dispatch) runs in the background so the
+    HTTP response is not blocked by the full graph execution time.
+    """
     approval = await service.get(approval_id)
     if approval is None:
         raise HTTPException(status_code=404, detail="approval not found")
-    updated = await service.submit_response(
-        approval_id, approved=payload.approved, feedback=payload.feedback
+    updated = await service.submit_response_async(
+        approval_id,
+        approved=payload.approved,
+        feedback=payload.feedback,
+        background_tasks=background_tasks,
     )
     return ApprovalSummary.model_validate(updated)

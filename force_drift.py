@@ -13,7 +13,7 @@ for i in range(100):
     row['job'] = 'housemaid'
     # convert numpy types to native Python
     row = {k: (int(v) if isinstance(v, (np.integer,)) else float(v) if isinstance(v, (np.floating,)) else v) for k, v in row.items()}
-    resp = requests.post("http://localhost:8000/predict", json=row)
+    resp = requests.post("http://localhost:8080/predict", json=row)
     if i % 100 == 0:
         print(f"Sent {i} drifted rows...")
 
