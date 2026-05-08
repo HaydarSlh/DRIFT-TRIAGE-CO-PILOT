@@ -1,0 +1,33 @@
+import requests
+import pandas as pd
+import numpy as np
+from ml_platform.config import TRAIN_PATH, TARGET_COL
+
+BASE = "http://localhost:8080/predict"   # adjust port if necessary
+df = pd.read_parquet(TRAIN_PATH).drop(columns=[TARGET_COL])
+std_euribor = df['euribor3m'].std()
+
+def py_row(row):
+    return {k: (int(v) if isinstance(v, (np.integer,))
+                else float(v) if isinstance(v, (np.floating,))
+                else v)
+            for k, v in row.items()}
+
+# 1. Fill window with 150 normal rows (severity = green)
+print("Filling 150 normal rows...")
+for i in range(150):
+    requests.post(BASE, json=py_row(df.iloc[i]))
+
+# 2. Inject 150 mildly drifted rows → target yellow
+print("Injecting 150 mildly drifted rows (target: yellow)...")
+for i in range(150, 300):
+    row = py_row(df.iloc[i % len(df)])
+    # Moderate shift on euribor3m: +1 standard deviation
+    row['euribor3m'] = float(row['euribor3m']) + std_euribor
+    # Change job only every 5th row (20% of rows)
+    if i % 5 == 0:
+        row['job'] = 'housemaid'
+    # DO NOT modify pdays – leave it exactly as in the original row
+    requests.post(BASE, json=row)
+
+print("Done. Severity should become YELLOW.")

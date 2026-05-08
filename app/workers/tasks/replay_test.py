@@ -1,8 +1,7 @@
 """``replay_test`` — re-score the held-out test set against current Production.
 
-Calls the platform's ``POST /predict/replay`` endpoint. Deterministic for tests
-(the platform stub returns canned results). Raises TransientToolError on
-5xx/429 and PermanentToolError on 4xx so the retry policy and DLQ behave
+Calls the platform's ``POST /models/replay`` endpoint. Raises TransientToolError
+on 5xx/429 and PermanentToolError on 4xx so the retry policy and DLQ behave
 correctly.
 """
 
@@ -21,7 +20,6 @@ log = get_logger(__name__)
 
 class ReplayTestInput(BaseModel):
     model_id: str = Field(min_length=1)
-    test_set: str = Field(default="heldout", description="Which test set to replay against.")
 
 
 class ReplayTestOutput(BaseModel):
@@ -36,7 +34,7 @@ async def replay_test(payload: dict[str, Any]) -> dict[str, Any]:
     """Replay the test set against the current production model.
 
     Args:
-        payload: ``{"model_id": "...", "test_set": "heldout"}``.
+        payload: ``{"model_id": "..."}``.
 
     Returns:
         ``{"model_id", "replay_auc", "baseline_auc", "passed"}``.
@@ -52,13 +50,13 @@ async def replay_test(payload: dict[str, Any]) -> dict[str, Any]:
     settings = get_settings()
     platform_url = settings.platform_url
 
-    log.info("replay_test_started", model_id=parsed.model_id, test_set=parsed.test_set)
+    log.info("replay_test_started", model_id=parsed.model_id)
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
-                f"{platform_url}/predict/replay",
-                json={"model_id": parsed.model_id, "test_set": parsed.test_set},
+                f"{platform_url}/models/replay",
+                json={"model_id": parsed.model_id},
             )
     except httpx.ConnectError as exc:
         raise TransientToolError(f"replay_test connect failed: {exc}") from exc
@@ -75,7 +73,7 @@ async def replay_test(payload: dict[str, Any]) -> dict[str, Any]:
     data = response.json()
     return ReplayTestOutput(
         model_id=parsed.model_id,
-        replay_auc=data.get("auc", 0.0),
-        baseline_auc=data.get("baseline_auc", 0.0),
-        passed=data.get("passed", False),
+        replay_auc=float(data["auc"]),
+        baseline_auc=float(data["baseline_auc"]),
+        passed=bool(data["passed"]),
     ).model_dump()

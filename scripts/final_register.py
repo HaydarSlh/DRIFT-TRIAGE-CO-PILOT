@@ -25,6 +25,7 @@ with mlflow.start_run(run_name="bank_marketing_model") as run:
     # Log the metrics the promotion gate expects
     mlflow.log_metric("val_auc", 0.78)        # use your actual test AUC
     mlflow.log_metric("val_recall", 0.76)     # use your actual test recall
+    mlflow.log_metric("operating_threshold", float(threshold_data["threshold"]))
     run_id = run.info.run_id
 
 # Find the latest version (the one just created)

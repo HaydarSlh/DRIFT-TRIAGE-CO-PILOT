@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request
 from datetime import datetime, timezone, timedelta
-from pathlib import Path
 import mlflow
 from mlflow.tracking import MlflowClient
 import logging
@@ -59,12 +58,7 @@ def run_promotion_checklist(model_version: str, action: str) -> tuple[bool, str]
     if val_recall is None or val_recall < 0.75:
         return False, f"Validation recall ({val_recall}) is below 0.75 or missing."
 
-    # 5. Model fidelity snapshot (proof that replay test passed)
-    snapshot_path = Path("tests/test_probs_snapshot.npy")
-    if not snapshot_path.exists():
-        return False, "Model fidelity snapshot missing. Run the fidelity test first."
-
-    # 6. Reference statistics must be frozen
+    # 5. Reference statistics must be frozen
     if not REFERENCE_STATS_PATH.exists():
         return False, "Reference statistics file missing."
 

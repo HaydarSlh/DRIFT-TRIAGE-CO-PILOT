@@ -32,6 +32,7 @@ from app.db.models import Investigation, InvestigationStatus
 from app.repositories.approval_repo import ApprovalRepository
 from app.repositories.investigation_repo import InvestigationRepository
 from app.schemas.webhooks import DriftAlertEvent
+from app.core.errors import AgentError
 
 log = get_logger(__name__)
 

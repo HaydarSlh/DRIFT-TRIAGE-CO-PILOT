@@ -23,9 +23,10 @@ CMD ["sh", "-c", "\
   python scripts/final_register.py && \
   mlflow server \
     --backend-store-uri sqlite:////app/mlruns/mlflow.db \
-    --default-artifact-root /app/mlruns \
+    --default-artifact-root /app/mlruns/artifacts \
     --host 0.0.0.0 \
     --port 5000 \
-    --cors-allowed-origins='*' & \
+    --allowed-hosts '*' \
+    --cors-allowed-origins '*' & \
   uvicorn ml_platform.api.main:app --host 0.0.0.0 --port 8000 \
 "]

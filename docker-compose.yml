@@ -18,6 +18,11 @@ services:
       - ./data:/app/data                 # (optional) live‑reload data
       - ./artifacts:/app/artifacts         # (optional) live‑reload artifacts
       - ./scripts:/app/scripts
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   migrate:
     build:
@@ -53,6 +58,7 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      
 
   worker:
     build:
@@ -77,6 +83,7 @@ services:
     environment:
       - AGENT_URL=http://agent:8001
       - PLATFORM_URL=http://platform:8000
+      - MLFLOW_URL=http://platform:5000
       - MLFLOW_TRACKING_URI=http://platform:5000
       - DASHBOARD_DB_PATH=/app/data/dashboard.db
     ports:
@@ -84,8 +91,11 @@ services:
     volumes:
       - dashboard_data:/app/data
     depends_on:
-      - platform
-      - agent
+      platform:
+        condition: service_healthy
+      agent:
+        condition: service_started
+ 
 
   postgres:
     image: postgres:16

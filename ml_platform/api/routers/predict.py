@@ -1,20 +1,20 @@
-import uuid
-import logging
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field, ConfigDict
-import pandas as pd
-import json
-import mlflow
-from datetime import datetime, timezone
-from ml_platform.config import *
-from ml_platform.drift.compute import RollingWindow, psi, chi2, output_drift, compute_severity
-from ml_platform.schemas import PredictionRequest, PredictionResponse, DriftAlert, DriftAlertWindow, DriftAlertDetails
-import httpx
-from datetime import datetime, timezone, timedelta
-from ml_platform.config import REGISTERED_MODEL_NAME
-from ml_platform.config import AGENT_WEBHOOK_SECRET
 import hashlib
 import hmac
+import json
+import logging
+import time
+import uuid
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+import httpx
+import mlflow
+import pandas as pd
+from fastapi import APIRouter, HTTPException
+
+from ml_platform.config import *
+from ml_platform.drift.compute import RollingWindow, psi, chi2, output_drift, compute_severity
+from ml_platform.schemas import PredictionRequest, PredictionResponse
 
 
 # ------------------------------------------------------------
@@ -24,6 +24,23 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+DRIFT_STATE_FILE = Path("/app/data/drift_state.json")
+
+def _load_drift_state():
+    """Return (last_severity, last_success_time) from disk, or defaults."""
+    try:
+        data = json.loads(DRIFT_STATE_FILE.read_text())
+        return data.get("last_severity", "green"), data.get("last_success_time", 0.0)
+    except Exception:
+        return "green", 0.0
+
+def _save_drift_state(severity, success_time):
+    """Persist severity and last successful webhook time."""
+    DRIFT_STATE_FILE.write_text(json.dumps({
+        "last_severity": severity,
+        "last_success_time": success_time
+    }))
 
 
 # ------------------------------------------------------------
@@ -60,7 +77,8 @@ def get_model():
 # ------------------------------------------------------------
 _window = RollingWindow()
 _reference_stats = None
-_last_severity = "green"
+_reference_pos_rate = None
+_last_severity, _last_webhook_time = _load_drift_state()
 
 def get_reference_stats():
     global _reference_stats
@@ -68,6 +86,22 @@ def get_reference_stats():
         with open(REFERENCE_STATS_PATH) as f:
             _reference_stats = json.load(f)
     return _reference_stats
+
+def get_reference_pos_rate():
+    """Model's predicted positive rate on training data — the right baseline for
+    output drift. Comparing current_pos_rate to the *label* rate would always
+    show a huge gap whenever the threshold is recall-tuned (this model: ~0.40
+    predicted vs ~0.11 labels), making the drift gate fire on healthy traffic."""
+    global _reference_pos_rate
+    if _reference_pos_rate is None:
+        import joblib
+        df = pd.read_parquet(TRAIN_PATH).drop(columns=[TARGET_COL])
+        pipeline = joblib.load(PIPELINE_PATH)
+        with open(THRESHOLD_PATH) as f:
+            thr = json.load(f)["threshold"]
+        probs = pipeline.predict_proba(df)[:, 1]
+        _reference_pos_rate = float((probs >= thr).mean())
+    return _reference_pos_rate
 
 def to_json_safe(obj):
     """Recursively convert sets → lists so the payload is JSON‑serializable."""
@@ -79,15 +113,14 @@ def to_json_safe(obj):
         return list(obj)
     return obj
 
-async def emit_webhook(severity: str, prev_severity: str, drift_metrics: dict,model_version: str = ""):
+async def emit_webhook(severity: str, prev_severity: str, drift_metrics: dict, model_version: str = "") -> bool:
     now = datetime.now(timezone.utc)
 
-    # Build payload as a flat dictionary – matches the agent’s DriftEvent model
     payload = {
         "timestamp": now.isoformat().replace("+00:00", "Z"),
         "event_id": str(uuid.uuid4()),
         "model_id": REGISTERED_MODEL_NAME,
-        "model_version": model_version,                         # platform doesn’t track version
+        "model_version": model_version,
         "severity": severity,
         "previous_severity": prev_severity,
         "current_window": {
@@ -95,16 +128,13 @@ async def emit_webhook(severity: str, prev_severity: str, drift_metrics: dict,mo
             "end": now.isoformat().replace("+00:00", "Z"),
             "num_predictions": len(_window.records)
         },
-        # Drift metrics at TOP level (flat, not nested)
         "psi": drift_metrics["psi"],
         "chi2": drift_metrics["chi2"],
         "output_drift": drift_metrics["output_drift"]
     }
 
-    # Serialize to JSON string
     body = json.dumps(payload).encode("utf-8")
 
-    # Compute HMAC‑SHA256 signature (same as before)
     signature = hmac.new(
         AGENT_WEBHOOK_SECRET.encode("utf-8"),
         body,
@@ -125,14 +155,15 @@ async def emit_webhook(severity: str, prev_severity: str, drift_metrics: dict,mo
                 headers=headers,
                 timeout=5
             )
-            if resp.status_code != 200:
-                logger.error(f"Webhook error response: {resp.status_code} - {resp.text}")
             logger.info(f"Webhook sent, status {resp.status_code}")
+            # consider 200/202 as success, others as failure
+            return resp.status_code in (200, 202)
         except Exception as e:
             logger.error(f"Webhook failed: {e}")
+            return False
 
 def compute_drift():
-    if len(_window.records) < 50:
+    if len(_window.records) < 30:
         return None
     df = _window.to_df()
     stats = get_reference_stats()
@@ -155,8 +186,7 @@ def compute_drift():
         current_pos_rate = (df["prediction"] == 1).mean()
     else:
         current_pos_rate = 0.0
-    ref_pos_rate = float(pd.read_parquet(TRAIN_PATH)[TARGET_COL].mean())
-    od = output_drift(current_pos_rate, ref_pos_rate)
+    od = output_drift(current_pos_rate, get_reference_pos_rate())
 
     return {
         "psi": psi_vals,
@@ -169,7 +199,7 @@ def compute_drift():
 # ------------------------------------------------------------
 @router.post("/predict", response_model=PredictionResponse)
 async def predict(request: PredictionRequest):
-    global _last_severity
+    global _last_severity, _last_webhook_time
 
     # 1. Load model
     try:
@@ -204,8 +234,22 @@ async def predict(request: PredictionRequest):
             drift_metrics["chi2"],
             drift_metrics["output_drift"]
         )
+
+        send_reason = None
         if severity != _last_severity:
-            await emit_webhook(severity, _last_severity, drift_metrics,model_version=str(_version))
-            _last_severity = severity
+            send_reason = "transition"
+        elif severity != "green" and (time.time() - _last_webhook_time > 60):
+            # Re-alert if non-green severity has persisted >60s (demo helper)
+            send_reason = "heartbeat"
+
+        if send_reason is not None:
+            success = await emit_webhook(severity, _last_severity, drift_metrics, model_version=str(_version))
+            if success:
+                _last_severity = severity
+                _last_webhook_time = time.time()
+                _save_drift_state(severity, _last_webhook_time)
+                logger.info(f"Webhook delivered (reason: {send_reason})")
+            else:
+                logger.warning(f"Webhook delivery failed, will retry (reason: {send_reason})")
 
     return PredictionResponse(probability=prob, prediction=pred)

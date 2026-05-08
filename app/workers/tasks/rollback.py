@@ -58,7 +58,7 @@ async def rollback(payload: dict[str, Any]) -> dict[str, Any]:
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
-                f"{platform_url}/registry/promote",
+                f"{platform_url}/rollback",
                 json={
                     "action": "rollback",
                     "model_version": parsed.target_version,

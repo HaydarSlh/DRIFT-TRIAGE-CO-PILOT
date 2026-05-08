@@ -7,6 +7,7 @@ wraps the read-side calls so we don't hammer the backends every rerun.
 from __future__ import annotations
 
 import os
+import uuid
 from typing import Any
 
 import httpx
@@ -14,7 +15,7 @@ import streamlit as st
 
 AGENT_URL = os.environ.get("AGENT_URL", "http://agent:8001")
 PLATFORM_URL = os.environ.get("PLATFORM_URL", "http://platform:8000")
-MLFLOW_URL = os.environ.get("MLFLOW_TRACKING_URI", "http://platform:5000")
+MLFLOW_URL = os.environ.get("MLFLOW_URL", "http://platform:5000")
 PROMOTION_CONTRACT = "promotion-v1"
 DEFAULT_TIMEOUT = 8.0
 
@@ -149,6 +150,8 @@ def promote_version(model_version: str, action: str, approved_by: str, approval_
             "action": action,
             "approved_by": approved_by,
             "approval_timestamp": approval_ts,
+            "investigation_id": str(uuid.uuid4()),
+            "reason": f"Manual {action} from dashboard by {approved_by}",
         },
         headers=headers,
     )
@@ -161,9 +164,9 @@ def promote_version(model_version: str, action: str, approved_by: str, approval_
 
 @st.cache_data(ttl=10, show_spinner=False)
 def list_registered_models() -> list[dict[str, Any]]:
-    """Direct MLflow REST: /api/2.0/mlflow/registered-models/list."""
+    """Direct MLflow REST: /api/2.0/mlflow/registered-models/search (MLflow 2.x)."""
     try:
-        data = _get(f"{MLFLOW_URL}/api/2.0/mlflow/registered-models/list")
+        data = _get(f"{MLFLOW_URL}/api/2.0/mlflow/registered-models/search")
         return data.get("registered_models", []) or []
     except ApiError:
         return []

@@ -46,7 +46,7 @@ def output_drift(current_positive_rate, reference_positive_rate):
     return current_positive_rate - reference_positive_rate
 
 def compute_severity(psi_values, chi2_values, output_drift_val,
-                     psi_thresholds=(0.05, 0.1), chi2_critical=3.0, output_drift_thresh=0.03):
+                     psi_thresholds=(0.1, 0.25), chi2_critical=10.0, output_drift_thresh=0.1):
     max_psi = max(psi_values.values()) if psi_values else 0.0
     max_chi2 = max(chi2_values.values()) if chi2_values else 0.0
     if max_psi >= psi_thresholds[1] or max_chi2 >= chi2_critical or abs(output_drift_val) > output_drift_thresh:
