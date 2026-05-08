@@ -45,7 +45,7 @@ async def retrain_shadow(payload: dict[str, Any]) -> dict[str, Any]:
     log.info("retrain_started", platform_url=platform_url)
 
     try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=270.0) as client:
             response = await client.post(
                 f"{platform_url}/retrain",
                 # No JSON body – the platform’s /retrain doesn’t expect one

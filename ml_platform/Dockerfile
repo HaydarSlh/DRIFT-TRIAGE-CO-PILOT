@@ -1,19 +1,31 @@
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy and install dependencies -------------------------------------------------
-# (requires a requirements.txt at the project root – see step 3 below)
 COPY ml_platform/requirements.txt .
-RUN uv pip install --system -r requirements.txt
+RUN pip install --no-cache-dir --timeout 300 --retries 10 -r requirements.txt
 
-# Copy the entire ml_platform package ------------------------------------------
+# Copy the entire ml_platform package
 COPY ml_platform/ ml_platform/
 
-# Copy data & artifacts --------------------------------------------------------
+# Copy data & artifacts
 COPY data/ data/
 COPY artifacts/ artifacts/
 
-EXPOSE 8000
+RUN mkdir -p /app/mlruns
 
-CMD ["uvicorn", "ml_platform.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+EXPOSE 8000 5000
+
+# Register the pre-trained model to Production, then start servers
+CMD ["sh", "-c", "\
+  python scripts/final_register.py && \
+  mlflow server \
+    --backend-store-uri sqlite:////app/mlruns/mlflow.db \
+    --default-artifact-root /app/mlruns \
+    --host 0.0.0.0 \
+    --port 5000 \
+    --cors-allowed-origins='*' & \
+  uvicorn ml_platform.api.main:app --host 0.0.0.0 --port 8000 \
+"]

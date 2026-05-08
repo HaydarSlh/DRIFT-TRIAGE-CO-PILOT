@@ -7,7 +7,15 @@
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\saleh\\\\OneDrive\\\\Desktop\\\\AIE bootcamp\\\\DRIFT-TRIAGE-CO-PILOT\\\\agenticPilot\" -Recurse -Force)",
       "Bash(Select-Object FullName)",
       "Bash(ConvertTo-Csv -NoTypeInformation)",
-      "Bash(Out-String)"
+      "Bash(Out-String)",
+      "PowerShell(netstat -ano)",
+      "PowerShell(Get-Process -Id 24432, 24284)",
+      "PowerShell(tasklist /fi \"PID eq 24432\" /fo list)",
+      "PowerShell(tasklist /fi \"PID eq 24284\" /fo list)",
+      "PowerShell(docker compose ps)",
+      "PowerShell(docker compose logs worker --tail 30)",
+      "PowerShell(docker compose logs platform --tail 30)",
+      "PowerShell(docker compose logs agent --tail 40)"
     ]
   }
 }

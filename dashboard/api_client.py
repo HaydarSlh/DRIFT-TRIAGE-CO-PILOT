@@ -34,9 +34,9 @@ def _get(url: str, **kwargs: Any) -> Any:
         raise ApiError(str(e)) from e
 
 
-def _post(url: str, json_body: dict | None = None, **kwargs: Any) -> Any:
+def _post(url: str, json_body: dict | None = None, timeout: float = DEFAULT_TIMEOUT, **kwargs: Any) -> Any:
     try:
-        r = httpx.post(url, json=json_body, timeout=DEFAULT_TIMEOUT, **kwargs)
+        r = httpx.post(url, json=json_body, timeout=timeout, **kwargs)
         r.raise_for_status()
         return r.json()
     except httpx.HTTPStatusError as e:
@@ -90,6 +90,7 @@ def respond_to_approval(approval_id: str, approved: bool, feedback: str) -> dict
     return _post(
         f"{AGENT_URL}/approvals/{approval_id}/respond",
         json_body={"approved": approved, "feedback": feedback},
+        timeout=120.0,  # graph resume + LLM calls + tool dispatch can take ~60s
     )
 
 
