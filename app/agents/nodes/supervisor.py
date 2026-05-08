@@ -70,6 +70,7 @@ async def supervisor_node(
         severity=severity,
         action_type=action_type,
         has_context=bool(state.get("context")),
+        comms_done=bool(state.get("comms_draft")),
         step_count=step_count,
     )
     try:
