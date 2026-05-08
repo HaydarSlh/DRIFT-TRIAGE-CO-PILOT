@@ -21,18 +21,21 @@ Workers available:
 - action:  proposes a remediation action (none, replay_test, retrain_shadow, rollback). Run after triage.
 - comms:   drafts a notification and dispatches Production-touching actions. Run after action.
 
+Routing rules (follow strictly):
+1. If has_context is False → run triage.
+2. If has_context is True and action_type is empty → run action.
+3. If action_type is set and comms_done is False → run comms.
+4. If comms_done is True → return "done". The run is complete.
+
 Return a structured decision:
 - next_agent: one of "triage", "action", "comms", "done"
 - reasoning:  one short sentence explaining the choice.
-
-Return "done" once the notification has been drafted. If something looks wrong (triage ran
-but produced no severity, etc.), prefer "done" over looping forever — there is a hard
-cap on supervisor steps and exceeding it forces termination anyway.
 
 Current state summary:
 - model_id: {model_id}
 - severity: {severity}
 - action_type: {action_type}
 - has_context: {has_context}
+- comms_done: {comms_done}
 - step_count: {step_count}
 """

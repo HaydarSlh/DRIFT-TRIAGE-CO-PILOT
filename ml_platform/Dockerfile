@@ -26,6 +26,6 @@ CMD ["sh", "-c", "\
     --default-artifact-root /app/mlruns \
     --host 0.0.0.0 \
     --port 5000 \
-    --cors-allowed-origins='*' & \
+    --allowed-hosts '*' & \
   uvicorn ml_platform.api.main:app --host 0.0.0.0 --port 8000 \
 "]

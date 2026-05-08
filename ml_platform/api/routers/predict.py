@@ -125,7 +125,7 @@ async def emit_webhook(severity: str, prev_severity: str, drift_metrics: dict,mo
                 headers=headers,
                 timeout=5
             )
-            if resp.status_code != 200:
+            if resp.status_code not in (200, 202):
                 logger.error(f"Webhook error response: {resp.status_code} - {resp.text}")
             logger.info(f"Webhook sent, status {resp.status_code}")
         except Exception as e:
