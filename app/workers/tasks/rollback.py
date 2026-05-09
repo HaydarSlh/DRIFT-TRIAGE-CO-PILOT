@@ -22,7 +22,10 @@ ROLLBACK_CONTRACT = "rollback-v1"
 
 class RollbackInput(BaseModel):
     model_id: str = Field(min_length=1)
-    target_version: str = Field(min_length=1, description="Version to roll back to.")
+    target_version: str | None = Field(
+        default=None,
+        description="Version to roll back to. If omitted, rolls back 1 version behind current Production.",
+    )
 
 
 class RollbackOutput(BaseModel):
@@ -36,7 +39,9 @@ async def rollback(payload: dict[str, Any]) -> dict[str, Any]:
     """Roll back Production to the previous registered version.
 
     Args:
-        payload: ``{"model_id": "...", "target_version": "2"}``.
+        payload: ``{"model_id": "...", "target_version": "2"}``. ``target_version``
+            is optional; when omitted, the platform rolls back 1 version behind
+            the current Production version (404 if that version doesn't exist).
 
     Returns:
         ``{"model_id", "previous_version", "new_production_version"}``.
@@ -54,14 +59,21 @@ async def rollback(payload: dict[str, Any]) -> dict[str, Any]:
 
     log.info("rollback_started", model_id=parsed.model_id, target_version=parsed.target_version)
 
+    target_for_request = parsed.target_version or ""
+    reason = (
+        f"Drift rollback to version {parsed.target_version}"
+        if parsed.target_version
+        else "Drift rollback to version 1 behind current Production"
+    )
+
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 f"{platform_url}/registry/rollback",
                 json={
                     "model_id": parsed.model_id,
-                    "target_version": parsed.target_version,
-                    "reason": f"Drift rollback to version {parsed.target_version}",
+                    "target_version": target_for_request,
+                    "reason": reason,
                 },
                 headers={"X-Contract-Version": ROLLBACK_CONTRACT},
             )

@@ -85,7 +85,10 @@ class PromotionResponse(BaseModel):
 class RollbackRequest(BaseModel):
     """Received at POST /registry/rollback"""
     model_id: str
-    target_version: str = Field(..., description="Version to roll Production back to.")
+    target_version: str = Field(
+        default="",
+        description="Version to roll Production back to. Empty = go 1 version behind current Production.",
+    )
     reason: str = ""
 
 class RollbackResponse(BaseModel):
