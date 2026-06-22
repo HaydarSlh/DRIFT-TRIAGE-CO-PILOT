@@ -94,7 +94,7 @@ async def health_ready(request: Request, settings: SettingsDep) -> dict[str, Any
         checks["queue"] = "disabled"
     else:
         try:
-            workers_alive = await queue._arq.exists("arq:health-check")
+            workers_alive = await queue._arq.exists("arq:queue:health-check")
             dlq_depth = await get_dlq_size(queue._redis)
             checks["queue"] = "ok"
             checks["workers"] = "ok" if workers_alive else "no_workers_responding"
