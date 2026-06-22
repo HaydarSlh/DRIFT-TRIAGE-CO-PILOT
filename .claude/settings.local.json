@@ -3,7 +3,28 @@
     "allow": [
       "PowerShell(cd \"c:\\\\Users\\\\saleh\\\\OneDrive\\\\Desktop\\\\AIE bootcamp\\\\DRIFT-TRIAGE-CO-PILOT\" && Get-ChildItem -Recurse -Force | Select-Object FullName | ForEach-Object { $_.FullName } | Sort-Object)",
       "PowerShell(cd \"c:\\\\Users\\\\saleh\\\\OneDrive\\\\Desktop\\\\AIE bootcamp\\\\DRIFT-TRIAGE-CO-PILOT\" && tree /a /f 2>$null || Get-ChildItem -Recurse -Force | Where-Object { -not $_.FullName.Contains\\(\"\\\\.git\"\\) } | Select-Object FullName | ForEach-Object { $_.FullName } | Sort-Object)",
-      "PowerShell(cd \"c:\\\\Users\\\\saleh\\\\OneDrive\\\\Desktop\\\\AIE bootcamp\\\\DRIFT-TRIAGE-CO-PILOT\" && Get-ChildItem -Recurse -Force -Exclude \".git\" | Select-Object -Property FullName, @{Name=\"Type\"; Expression={if\\($_.PSIsContainer\\) {\"Folder\"} else {\"File\"}}} | Sort-Object FullName | Format-Table -AutoSize)"
+      "PowerShell(cd \"c:\\\\Users\\\\saleh\\\\OneDrive\\\\Desktop\\\\AIE bootcamp\\\\DRIFT-TRIAGE-CO-PILOT\" && Get-ChildItem -Recurse -Force -Exclude \".git\" | Select-Object -Property FullName, @{Name=\"Type\"; Expression={if\\($_.PSIsContainer\\) {\"Folder\"} else {\"File\"}}} | Sort-Object FullName | Format-Table -AutoSize)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\saleh\\\\OneDrive\\\\Desktop\\\\AIE bootcamp\\\\DRIFT-TRIAGE-CO-PILOT\\\\agenticPilot\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(ConvertTo-Csv -NoTypeInformation)",
+      "Bash(Out-String)",
+      "PowerShell(netstat -ano)",
+      "PowerShell(Get-Process -Id 24432, 24284)",
+      "PowerShell(tasklist /fi \"PID eq 24432\" /fo list)",
+      "PowerShell(tasklist /fi \"PID eq 24284\" /fo list)",
+      "PowerShell(docker compose ps)",
+      "PowerShell(docker compose logs worker --tail 30)",
+      "PowerShell(docker compose logs platform --tail 30)",
+      "PowerShell(docker compose logs agent --tail 40)",
+      "PowerShell(docker compose logs platform --tail 20)",
+      "PowerShell(docker compose logs agent --tail 20)",
+      "PowerShell(docker compose exec agent uv run python -c \"import asyncio; from app.config import get_settings; from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker; from sqlalchemy import text; s=get_settings\\(\\); engine=create_async_engine\\(s.database_url\\); sm=async_sessionmaker\\(engine\\); asyncio.run\\(sm\\(\\).__aenter__\\(\\)\\)\" 2>&1)",
+      "PowerShell(head -5)",
+      "PowerShell(docker compose exec postgres psql -U postgres -d db -c \"SELECT id, status, severity, created_at FROM investigations ORDER BY created_at DESC LIMIT 5;\")",
+      "PowerShell(Invoke-WebRequest -Uri \"http://localhost:5000/api/2.0/mlflow/registered-models/list\" -UseBasicParsing)",
+      "PowerShell(docker compose exec platform mlflow server --help 2>&1)",
+      "Bash(Remove-Item -Recurse -Force \"c:\\\\Users\\\\saleh\\\\OneDrive\\\\Desktop\\\\AIE bootcamp\\\\DRIFT-TRIAGE-CO-PILOT\\\\ml_flow\" \"c:\\\\Users\\\\saleh\\\\OneDrive\\\\Desktop\\\\AIE bootcamp\\\\DRIFT-TRIAGE-CO-PILOT\\\\infra\")",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

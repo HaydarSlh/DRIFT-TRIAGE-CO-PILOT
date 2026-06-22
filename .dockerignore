@@ -1,0 +1,80 @@
+# ========================================
+# Python
+# ========================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# ========================================
+# Environment & secrets
+# ========================================
+.env
+*.env.local
+*.env.prod
+
+# ========================================
+# Git
+# ========================================
+.git/
+.gitignore
+.gitattributes
+
+# ========================================
+# IDE / Editor
+# ========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.code-workspace
+.DS_Store
+Thumbs.db
+
+# ========================================
+# MLflow & Artifacts (these are mounted as volumes or generated locally)
+# ========================================
+mlruns/
+mlruns.db
+mlruns/
+
+# Artifacts might be mounted as a volume, but if you COPY them in Dockerfile, keep them.
+# If you want to exclude them and mount at runtime, uncomment:
+# artifacts/
+
+# ========================================
+# Data files (usually mounted at runtime)
+# ========================================
+data/*.csv
+data/*.parquet
+# If you want to include small test datasets, remove the above lines.
+
+# ========================================
+# Testing & CI
+# ========================================
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+# Keep tests if they are needed for CI inside the container, else exclude them.
+
+# ========================================
+# Documentation & miscellaneous
+# ========================================
+README.md
+ARCH.md
+DECISIONS.md
+RUNBOOK.md
+# (uncomment the above if your container doesn't need them)
+
+*.log
+*.tmp
