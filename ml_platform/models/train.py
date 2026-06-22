@@ -85,7 +85,7 @@ if __name__ == "__main__":
         op_threshold = float(thresh[idx])
     else:
         op_threshold = 0.5
-        print("⚠️  No threshold meets recall >= 0.75 - using default 0.5")
+        print("No threshold meets recall >= 0.75 - using default 0.5")
 
     val_preds = (y_prob_val >= op_threshold).astype(int)
     val_recall = recall_score(y_val, val_preds)

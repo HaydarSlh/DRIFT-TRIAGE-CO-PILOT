@@ -22,7 +22,9 @@
       "PowerShell(head -5)",
       "PowerShell(docker compose exec postgres psql -U postgres -d db -c \"SELECT id, status, severity, created_at FROM investigations ORDER BY created_at DESC LIMIT 5;\")",
       "PowerShell(Invoke-WebRequest -Uri \"http://localhost:5000/api/2.0/mlflow/registered-models/list\" -UseBasicParsing)",
-      "PowerShell(docker compose exec platform mlflow server --help 2>&1)"
+      "PowerShell(docker compose exec platform mlflow server --help 2>&1)",
+      "Bash(Remove-Item -Recurse -Force \"c:\\\\Users\\\\saleh\\\\OneDrive\\\\Desktop\\\\AIE bootcamp\\\\DRIFT-TRIAGE-CO-PILOT\\\\ml_flow\" \"c:\\\\Users\\\\saleh\\\\OneDrive\\\\Desktop\\\\AIE bootcamp\\\\DRIFT-TRIAGE-CO-PILOT\\\\infra\")",
+      "Bash(python3 -c ' *)"
     ]
   }
 }
