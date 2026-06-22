@@ -14,7 +14,6 @@ from views import (
     drift_page,
     investigations_page,
     overview_page,
-    queue_page,
     registry_page,
 )
 
@@ -55,7 +54,6 @@ with st.sidebar:
         "HIL Approvals": "✋",
         "Model Registry": "📦",
         "Drift Monitor": "📈",
-        "Queue & DLQ": "⚙️",
     }
     page = st.radio(
         "Navigation",
@@ -89,7 +87,6 @@ PAGES = {
     "HIL Approvals": approvals_page.render,
     "Model Registry": registry_page.render,
     "Drift Monitor": drift_page.render,
-    "Queue & DLQ": queue_page.render,
 }
 
 PAGES[page]()

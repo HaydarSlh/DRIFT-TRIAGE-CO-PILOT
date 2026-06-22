@@ -32,17 +32,40 @@ async def rollback(request: Request, body: RollbackRequest):
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     client = MlflowClient()
 
+    target_version = body.target_version
+
+    if not target_version:
+        prod_versions = [
+            v for v in client.search_model_versions(f"name='{REGISTERED_MODEL_NAME}'")
+            if v.current_stage == "Production"
+        ]
+        if not prod_versions:
+            raise HTTPException(
+                status_code=409,
+                detail="No Production version to roll back from.",
+            )
+        current_prod = sorted(prod_versions, key=lambda v: int(v.version))[-1]
+        candidate = str(int(current_prod.version) - 1)
+        try:
+            client.get_model_version(name=REGISTERED_MODEL_NAME, version=candidate)
+        except Exception:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Previous version {candidate} not found in registry.",
+            )
+        target_version = candidate
+
     try:
-        target = client.get_model_version(name=REGISTERED_MODEL_NAME, version=body.target_version)
+        target = client.get_model_version(name=REGISTERED_MODEL_NAME, version=target_version)
     except Exception:
         raise HTTPException(
             status_code=404,
-            detail=f"Target version {body.target_version} not found in registry.",
+            detail=f"Target version {target_version} not found in registry.",
         )
 
     prod_versions = [
         v for v in client.search_model_versions(f"name='{REGISTERED_MODEL_NAME}'")
-        if v.current_stage == "Production" and v.version != body.target_version
+        if v.current_stage == "Production" and v.version != target_version
     ]
     previous_version = (
         sorted(prod_versions, key=lambda v: int(v.version))[-1].version
@@ -50,29 +73,28 @@ async def rollback(request: Request, body: RollbackRequest):
     )
 
     if target.current_stage == "Production" and not prod_versions:
-        # Already the only production version — nothing to do.
-        logger.info(f"Rollback no-op: v{body.target_version} is already the sole Production version")
+        logger.info(f"Rollback no-op: v{target_version} is already the sole Production version")
         return RollbackResponse(
             model_id=body.model_id,
             previous_version="",
-            new_production_version=body.target_version,
+            new_production_version=target_version,
             mlflow_run_id=target.run_id or "",
         )
 
     client.transition_model_version_stage(
         name=REGISTERED_MODEL_NAME,
-        version=int(body.target_version),
+        version=int(target_version),
         stage="Production",
         archive_existing_versions=True,
     )
     logger.info(
-        f"Rollback executed: v{previous_version or '(none)'} → v{body.target_version} "
+        f"Rollback executed: v{previous_version or '(none)'} → v{target_version} "
         f"(reason: {body.reason!r})"
     )
 
     return RollbackResponse(
         model_id=body.model_id,
         previous_version=previous_version,
-        new_production_version=body.target_version,
+        new_production_version=target_version,
         mlflow_run_id=target.run_id or "",
     )
